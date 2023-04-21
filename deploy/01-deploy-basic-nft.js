@@ -1,34 +1,23 @@
 //import
 //main function
-//calling of main function
-
-// function deployFunc(hre) {
-//      console.log("Hi");
-//      const {getNamedAccounts, deployments} = hre
-//      hre.getNamedAccounts()
-//      hre.deployments
-// }
-
-// module.exports.default = deployFunc;
+//calling of main fucntion
 
 const { network } = require("hardhat");
-const {
-    networkConfig,
-    developmentChains,
-} = require("../helper-hardhat-config");
+const { developmentChains } = require("../helper-hardhat-config");
 const { verify } = require("../utils/verify");
-require("dotenv").config();
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
     const { deploy, log } = deployments; //getting variables from deployments object
     const { deployer } = await getNamedAccounts();
+    const chainId = network.config.chainId;
 
-    log("---------------------------");
+    const args = [];
 
-    const arguments = [];
-    const basicNft = await deploy("BasicNFT", {
+    log(".................................");
+    log("deploying....");
+    const basicNft = await deploy("BasicNft", {
         from: deployer,
-        args: arguments,
+        args: args,
         log: true,
         waitConfirmations: network.config.blockConfirmations || 1,
     });
@@ -37,10 +26,9 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         !developmentChains.includes(network.name) &&
         process.env.ETHERSCAN_API_KEY
     ) {
-        log("Verifying...");
-        await verify(basicNft.address, arguments);
-        log("------------------------");
+        log("Verifying....");
+        await verify(basicNft.address, args);
     }
 };
 
-module.exports.tags = ["all", "basicNft"];
+module.exports.tags = ["all", "basicnft"];

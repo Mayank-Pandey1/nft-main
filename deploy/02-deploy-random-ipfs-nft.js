@@ -1,16 +1,20 @@
-const { network } = require("hardhat");
+//import
+//main function
+//calling of main fucntion
+
+const { network, ethers } = require("hardhat");
 const {
-    networkConfig,
     developmentChains,
+    networkConfig,
 } = require("../helper-hardhat-config");
 const { verify } = require("../utils/verify");
 const {
     storeImages,
     storeTokenUriMetadata,
 } = require("../utils/uploadToPinata");
+const imagesLocation = "./images/RandomNft/";
+const FUND_AMOUNT = "1000000000000000000000"; //10 links
 
-const FUND_AMOUNT = "1000000000000000000000";
-const imagesLocation = "./images/randomNft/";
 let tokenUris = [
     "ipfs://QmaVkBn2tKmjbhphU7eyztbvSQU5EXDdqRyXZtRhSGgJGo",
     "ipfs://QmYQC5aGZu2PTH8XzbJrbDnvhj3gVs7ya33H9mqUNvST3d",
@@ -30,24 +34,22 @@ const metadataTemplate = {
 };
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
-    const { deploy, log } = deployments;
+    const { deploy, log } = deployments; //getting variables from deployments object
     const { deployer } = await getNamedAccounts();
     const chainId = network.config.chainId;
+
     let vrfCoordinatorV2Address, subscriptionId, vrfCoordinatorV2Mock;
 
     if (process.env.UPLOAD_TO_PINATA == "true") {
         tokenUris = await handleTokenUris();
     }
 
-    if (chainId == 31337) {
+    if (developmentChains.includes(network.name)) {
         vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock");
         vrfCoordinatorV2Address = vrfCoordinatorV2Mock.address;
-        const transactionResponse =
-            await vrfCoordinatorV2Mock.createSubscription();
-        const transactionReceipt = await transactionResponse.wait();
-        subscriptionId = transactionReceipt.events[0].args.subId;
-
-        //using mock to fund
+        const tx = await vrfCoordinatorV2Mock.createSubscription();
+        const txReceipt = await tx.wait(1);
+        subscriptionId = txReceipt.events[0].args.subId;
         await vrfCoordinatorV2Mock.fundSubscription(
             subscriptionId,
             FUND_AMOUNT
@@ -57,35 +59,36 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         subscriptionId = networkConfig[chainId].subscriptionId;
     }
 
-    log("----------------------------------------------------");
-    arguments = [
+    log("---------------------------");
+
+    const args = [
         vrfCoordinatorV2Address,
+        networkConfig[chainId].gasLane,
         subscriptionId,
-        networkConfig[chainId]["gasLane"],
-        networkConfig[chainId]["mintFee"],
-        networkConfig[chainId]["callbackGasLimit"],
+        networkConfig[chainId].callbackGasLimit,
         tokenUris,
+        networkConfig[chainId].mintFee,
     ];
+
     const randomIpfsNft = await deploy("RandomIpfsNft", {
         from: deployer,
-        args: arguments,
+        args: args,
         log: true,
         waitConfirmations: network.config.blockConfirmations || 1,
     });
 
-    if (chainId == 31337) {
-        await vrfCoordinatorV2Mock.addConsumer(
-            subscriptionId,
-            randomIpfsNft.address
-        );
-    }
+    await vrfCoordinatorV2Mock.addConsumer(
+        subscriptionId,
+        randomIpfsNft.address
+    );
 
+    log("----------------------------------");
     if (
         !developmentChains.includes(network.name) &&
         process.env.ETHERSCAN_API_KEY
     ) {
-        log("Verifying...");
-        await verify(randomIpfsNft.address, arguments);
+        log("Verifying....");
+        await verify(randomIpfsNft.address, args);
     }
 };
 
@@ -95,6 +98,7 @@ async function handleTokenUris() {
         imagesLocation
     );
     for (imageUploadResponseIndex in imageUploadResponses) {
+        //create the metadata and upload the metadata
         let tokenUriMetadata = { ...metadataTemplate };
         tokenUriMetadata.name = files[imageUploadResponseIndex].replace(
             ".png",
@@ -108,9 +112,10 @@ async function handleTokenUris() {
         );
         tokenUris.push(`ipfs://${metadataUploadResponse.IpfsHash}`);
     }
-    console.log("Uploaded token URIs are: ");
+
+    console.log("Token URIs uploaded. They are: ");
     console.log(tokenUris);
     return tokenUris;
 }
 
-module.exports.tags = ["all", "randomipfs", "main"];
+module.exports.tags = ["all", "randomIpfs"];
