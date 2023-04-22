@@ -9,6 +9,7 @@ const networkConfig = {
             "0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15",
         subscriptionId: "10739",
         callbackGasLimit: "500000",
+        ethUsdPriceFeed: "0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e",
     },
     11155111: {
         name: "sepolia",
@@ -18,6 +19,7 @@ const networkConfig = {
             "0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c",
         subscriptionId: "272",
         callbackGasLimit: "500000",
+        ethUsdPriceFeed: "0x694AA1769357215DE4FAC081bf1f309aDC325306",
     },
     31337: {
         name: "hardhat",
